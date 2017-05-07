@@ -1,0 +1,241 @@
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import mean, sum, max, col, avg, min, count,coalesce,lit,when
+ruta = "/home/antonio/Documentos/forecasting_mio/"
+clasificacionTiendaDF2016=spark.read.option("header","true").option("inferSchema","true").csv(ruta+"clasificacion2016.csv")
+clasificacionTiendaDF2017=spark.read.option("header","true").option("inferSchema","true").csv(ruta+"clasificacion2017.csv")
+clasificacion=when(col("clasificacion")=="*B",lit(1)).when(col("clasificacion")=="AAA",lit(0)).otherwise(lit(3))
+clasificacionTiendaDF2016=clasificacionTiendaDF2016.withColumn("clasificacion",clasificacion)
+clasificacionTiendaDF2017=clasificacionTiendaDF2017.withColumn("clasificacion",clasificacion)
+tiendaClusterDF=spark.read.option("header","true").option("inferSchema","true").csv(ruta+"Store_Clusters.csv")
+productoDF=spark.read.option("header","true").option("inferSchema","true").csv(ruta+"producto.csv")
+ventas2016DF=spark.read.option("header","true").option("inferSchema","true").csv(ruta+"venta2016.csv")
+ventas2017DF=spark.read.option("header","true").option("inferSchema","true").csv(ruta+"venta2017.csv")
+diaDF=spark.read.option("header","true").option("inferSchema","true").csv(ruta+"dia.csv")
+diaDF.createTempView("dia")
+ventas2016DF.createTempView("ventas2016DF")
+ventas2017DF.createTempView("ventas2017DF")
+
+
+#
+df=spark.sql("select a.id_tienda from (select distinct id_tienda from ventas2017DF) a inner join (select distinct id_tienda from ventas2016DF) b on a.id_tienda=b.id_tienda")
+
+df.createTempView("df")
+
+df1=spark.read.option("header","true").option("inferSchema","true").csv(ruta+"cien_tiendas.csv")
+df1.createTempView("df1")
+
+df2=spark.sql("select a.id_tienda,a.tickets from df1 a inner join df b on a.id_tienda=b.id_tienda order by a.tickets desc limit 50")
+df2.createTempView("df2")
+
+df=spark.sql("select id_tienda from df2")
+
+spark.sql("drop table df")
+df.createTempView("df")
+
+cachos={}
+for i in range(1,17):
+   cachos[i]="select * from (select row_number() over(order by id_tienda) num, * from df) A where num>" + str(3*(i-1)) + " and num<" + str(3*i+1)
+
+cachosSQL={}
+for i in range(1,17):
+   cachosSQL[i]=spark.sql(cachos[i])
+
+for i in range(1,17):
+   cachosSQL[i].createTempView("cachosSQL{0}".format(i))
+
+strings2016={}
+for i in range(1,17):
+   strings2016[i]="select a.piezas_vendidas,a.id_producto,a.id_tienda,a.id_fecha_venta from ventas2016DF a inner join " + "cachosSQL{0}".format(i) + " b on a.id_tienda=b.id_tienda"
+
+
+
+strings2017={}
+for i in range(1,17):
+   strings2017[i]="select a.piezas_vendidas,a.id_producto,a.id_tienda,a.id_fecha_venta from ventas2017DF a inner join " + "cachosSQL{0}".format(i) + " b on a.id_tienda=b.id_tienda"
+
+
+
+diccionario2016={}
+for i in range(1,17):
+   diccionario2016[i]=spark.sql(strings2016[i])
+
+
+
+diccionario2017={}
+for i in range(1,17):
+   diccionario2017[i]=spark.sql(strings2017[i])
+
+
+#sobrantes
+
+
+cachos[17]="select * from (select row_number() over(order by id_tienda) num, * from df) A where num between 49 and 50"
+
+for i in range(17,18):
+   cachos[i]=cachos[17]
+
+for i in range(17,18):
+   cachosSQL[i]=spark.sql(cachos[i])
+
+for i in range(17,18):
+   cachosSQL[i].createTempView("cachosSQL{0}".format(i))
+
+for i in range(17,18):
+   strings2016[i]="select a.piezas_vendidas,a.id_producto,a.id_tienda,a.id_fecha_venta from ventas2016DF a inner join " + "cachosSQL{0}".format(i) + " b on a.id_tienda=b.id_tienda"
+
+for i in range(17,18):
+   strings2017[i]="select a.piezas_vendidas,a.id_producto,a.id_tienda,a.id_fecha_venta from ventas2017DF a inner join " + "cachosSQL{0}".format(i) + " b on a.id_tienda=b.id_tienda"
+
+for i in range(17,18):
+   diccionario2016[i]=spark.sql(strings2016[i])
+
+for i in range(17,18):
+   diccionario2017[i]=spark.sql(strings2017[i])
+
+
+
+#
+
+
+
+semana2017=201708
+semana2016=201609
+
+spark.sql("select max(identfecha) as maxDia2017,min(identfecha) as minDia2017 from dia where idsemana between " + str(semana2017-5) + " and " + str(semana2017)).show()
+maxDia2017=str(20170225)
+minDia2017=str(20170115)
+
+spark.sql("select max(identfecha) as maxDia2016, min(identfecha) as minDia2016 from dia where idsemana between " + str(semana2016-5) + " and " + str(semana2016)).show()
+maxDia2016=str(20160227)
+minDia2016=str(20160117)
+
+
+productoDF.createTempView("productoDF")
+productoDF1=spark.read.option("header","true").option("inferSchema","true").csv(ruta+"cien_productos.csv")
+productoDF1.createTempView("productoDF1")
+productoDF=spark.sql("select a.idproducto,a.idproductovm,a.codigobarras,a.producto,a.idsubcategoria,a.subcategoria,a.idcategoria,a.categoria from productoDF a inner join productoDF1 b on a.idproducto=b.id_producto")
+
+
+for i in range(1,3):
+   ventas2016DF=diccionario2016[i]
+   ventas2017DF=diccionario2017[i]
+   ventas2016DF.createTempView("v2016")
+   A20161=spark.sql("select * from (select id_producto,id_tienda from v2016 group by id_producto,id_tienda) a cross join (select identfecha as new_id_fecha_venta from dia where identfecha between " + minDia2016 + " and " + maxDia2016 + ") b")
+   A20161.createTempView("A2016")
+   v20161=spark.sql("select a.id_producto,a.id_tienda,a.new_id_fecha_venta,b.piezas_vendidas from A2016 A left join (select * from v2016) B on A.id_producto=B.id_producto and A.id_tienda=B.id_tienda and A.new_id_fecha_venta=B.id_fecha_venta")
+   spark.sql("drop table A2016")
+   spark.sql("drop table v2016")
+   v20161=v20161.na.fill(0)
+   print "ceros 2016 ya"
+   ventas2017DF.createTempView("v2017")
+   A20171=spark.sql("select * from (select id_producto,id_tienda from v2017 group by id_producto,id_tienda) a cross join (select identfecha as new_id_fecha_venta from dia where identfecha between " + minDia2017 + " and " + maxDia2017 + ") b")
+   A20171.createTempView("A2017")
+   v20171=spark.sql("select a.id_producto,a.id_tienda,a.new_id_fecha_venta,b.piezas_vendidas from A2017 A left join (select * from v2017) B on A.id_producto=B.id_producto and A.id_tienda=B.id_tienda and A.new_id_fecha_venta=B.id_fecha_venta")
+   spark.sql("drop table A2017")
+   spark.sql("drop table v2017")
+   v20171=v20171.na.fill(0)
+   print "ceros 2017 ya"
+   v20171.createTempView("w2")
+   v20161.createTempView("w1")
+   nulos1=spark.sql("select A.id_tienda,A.id_producto from (select sum(piezas_vendidas) as suma,id_tienda,id_producto from w1 group by id_producto,id_tienda) A where suma=0")
+   nulos1.createTempView("nulos1")
+   todos1=spark.sql("select w1.id_producto,w1.id_tienda,w1.new_id_fecha_venta,w1.piezas_vendidas,nulos1.id_producto as productos,nulos1.id_tienda as tiendas from w1 left join nulos1 on w1.id_producto=nulos1.id_producto and w1.id_tienda=nulos1.id_tienda")
+   todos1.createTempView("todos1")
+   todos2016=spark.sql("select id_producto,id_tienda,new_id_fecha_venta,piezas_vendidas from todos1 where tiendas is null")
+   spark.sql("drop table w1")
+   spark.sql("drop table nulos1")
+   spark.sql("drop table todos1")
+   print "ya no hay ceros innecesarios 2016, ya"
+   nulos2=spark.sql("select A.id_tienda,A.id_producto from (select sum(piezas_vendidas) as suma,id_tienda,id_producto from w2 group by id_producto,id_tienda) A where suma=0")
+   nulos2.createTempView("nulos2")
+   todos2=spark.sql("select w2.id_producto,w2.id_tienda,w2.new_id_fecha_venta,w2.piezas_vendidas,nulos2.id_producto as productos,nulos2.id_tienda as tiendas from w2 left join nulos2 on w2.id_producto=nulos2.id_producto and w2.id_tienda=nulos2.id_tienda")
+   todos2.createTempView("todos2")
+   todos2017=spark.sql("select id_producto,id_tienda,new_id_fecha_venta,piezas_vendidas from todos2 where tiendas is null")
+   spark.sql("drop table w2")
+   spark.sql("drop table nulos2")
+   spark.sql("drop table todos2")
+   print "ya no hay ceros innecesarios 2017, ya"   
+   v20171=todos2017
+   v20161=todos2016
+   clasificacionTiendaDF2016.createTempView("c2016DF")
+   clasificacionTiendaDF2017.createTempView("c2017DF")
+   v20161.createTempView("venta2016")
+   v20171.createTempView("venta2017")
+   print "clasificaciones y ventas TempView ya"
+   venta2016=spark.sql("select a.id_producto,a.id_tienda,b.clasificacion,a.new_id_fecha_venta,a.piezas_vendidas from venta2016 a inner join c2016DF b on a.id_tienda=b.id_tienda where b.tabla=1 and idsemana=201608")
+   spark.sql("drop table c2016DF")
+   spark.sql("drop table venta2016")
+   print "unir clasificaciones de tienda y ventas 2016 ya"
+   venta2017=spark.sql("select a.id_producto,a.id_tienda,b.clasificacion,a.new_id_fecha_venta,a.piezas_vendidas from venta2017 a inner join c2017DF b on a.id_tienda=b.id_tienda where b.tabla=1 and idsemana=201707")
+   spark.sql("drop table c2017DF")
+   spark.sql("drop table venta2017")
+   print "unir clasificaciones de tienda y ventas 2017 ya"
+   diaSql = "select identfecha as idDia,idsemana as idSemana, cast(substr(diaSemana,0,instr(diasemana,'.')) as int) as    diaSemana, case cast(substr(diaSemana,0,instr(diasemana,'.')) as int) when 1 then 1 when 7 then 1 else 0 end as finSemana from dia where identfecha >=20150101"
+   fechaDF=spark.sql(diaSql)
+   print "dias semana y fines como numero, ya"
+   productosDF=productoDF.select(col("idProducto"),col("idSubcategoria"),col("idCategoria"))
+   productosDF.createTempView("productosDF")
+   venta2016.createTempView("venta2016")
+   ventaCatDF2016=spark.sql("select * from venta2016 a inner join productosDF b on a.id_producto=b.idProducto")
+   spark.sql("drop table venta2016")
+   print "unir categorias, subcategorias de producto, dia semana y fin de semana a ventas 2016, ya"
+   venta2017.createTempView("venta2017")
+   ventaCatDF2017=spark.sql("select * from venta2017 a inner join productosDF b on a.id_producto=b.idProducto")
+   spark.sql("drop table venta2017")
+   print "unir categorias, subcategorias de producto, dia semana y fin de semana a ventas 2017, ya"
+   spark.sql("drop table productosDF")
+   clusterDF=tiendaClusterDF.select(col("dib_store_code"),col("CLUSTER"))
+   matriz20161=ventaCatDF2016.join(clusterDF,ventaCatDF2016.id_tienda==clusterDF.dib_store_code)
+   matriz20171=ventaCatDF2017.join(clusterDF,ventaCatDF2017.id_tienda==clusterDF.dib_store_code)
+   print "matrices uno ya"   
+   matriz20161.createTempView("matriz20161SQL")
+   matriz20161SQL1=spark.sql("select * from matriz20161SQL where piezas_vendidas is not null")
+   matriz20171.createTempView("matriz20171SQL")
+   matriz20171SQL1=spark.sql("select * from matriz20171SQL where piezas_vendidas is not null")
+   spark.sql("drop table matriz20161SQL")
+   spark.sql("drop table matriz20171SQL")
+   print "matrices uno sin valores  null (quiza innecesario?), ya"
+   matriz20162=matriz20161SQL1.join(fechaDF,matriz20161SQL1.new_id_fecha_venta==fechaDF.idDia)
+   matriz20172=matriz20171SQL1.join(fechaDF,matriz20171SQL1.new_id_fecha_venta==fechaDF.idDia)
+   print "matrices dos ya"
+   matriz20163=matriz20162.select(col("piezas_vendidas"),col("id_producto"),col("id_tienda"),col("idSubcategoria"),col("idCategoria"),col("CLUSTER"),col("idSemana"),col("diaSemana"),col("finSemana"),col("clasificacion"))
+   matriz20173=matriz20172.select(col("piezas_vendidas"),col("id_producto"),col("id_tienda"),col("idSubcategoria"),col("idCategoria"),col("CLUSTER"),col("idSemana"),col("diaSemana"),col("finSemana"),col("clasificacion"))
+   print "matrices tres ya"
+   matriz20164=matriz20163.groupBy("id_tienda","id_producto","idSubcategoria","idCategoria","finSemana","diaSemana","CLUSTER","clasificacion").pivot("idSemana").sum("piezas_vendidas")
+   matriz20174=matriz20173.groupBy("id_tienda","id_producto","idSubcategoria","idCategoria","finSemana","diaSemana","CLUSTER","clasificacion").pivot("idSemana").sum("piezas_vendidas")
+   print "matrices cuatro ya"
+   agregados=[mean("piezas_vendidas").alias("mediana"),max("piezas_vendidas").alias("maximo"),avg("piezas_vendidas").alias("promedio"),min("piezas_vendidas").alias("minimo"),sum("piezas_vendidas").alias("suma")]
+   matriz20165=matriz20163.groupBy("id_producto","id_tienda","idSubcategoria","idCategoria","CLUSTER","diaSemana","finSemana","clasificacion").pivot("idSemana").agg(*agregados)
+   matriz20175=matriz20173.groupBy("id_producto","id_tienda","idSubcategoria","idCategoria","CLUSTER","diaSemana","finSemana","clasificacion").pivot("idSemana").agg(*agregados)
+   print "matrices cinco ya"
+   bDF2016=matriz20164.select(col("id_tienda").alias("id_tienda1"),col("clasificacion").alias("clasificacion1"),col("CLUSTER").alias("CLUSTER1"),col("id_producto").alias("id_producto1"),col("idCategoria").alias("idCategoria1"),col("idSubcategoria").alias("idSubcategoria1"),col("diaSemana").alias("diaSemana1"),col("finSemana").alias("finSemana1"),col(str(semana2016-5)),col(str(semana2016-4)),col(str(semana2016-3)),col(str(semana2016-2)),col(str(semana2016-1)),col(str(semana2016)))
+   bDF2017=matriz20174.select(col("id_tienda").alias("id_tienda1"),col("clasificacion").alias("clasificacion1"),col("CLUSTER").alias("CLUSTER1"),col("id_producto").alias("id_producto1"),col("idCategoria").alias("idCategoria1"),col("idSubcategoria").alias("idSubcategoria1"),col("diaSemana").alias("diaSemana1"),col("finSemana").alias("finSemana1"),col(str(semana2017-5)),col(str(semana2017-4)),col(str(semana2017-3)),col(str(semana2017-2)),col(str(semana2017 -1)),col(str(semana2017)))
+   print "piezas de semanas anteriores ya"
+   sDF2016=matriz20165
+   sDF2017=matriz20175
+   print "agregados ya"
+   mDF2016=sDF2016.join(bDF2016,(sDF2016.id_tienda==bDF2016.id_tienda1)&(sDF2016.CLUSTER==bDF2016.CLUSTER1)&(sDF2016.id_producto==bDF2016.id_producto1)&(sDF2016.idCategoria==bDF2016.idCategoria1)&(sDF2016.idSubcategoria==bDF2016.idSubcategoria1)&(sDF2016.diaSemana==bDF2016.diaSemana1)&(sDF2016.finSemana==bDF2016.finSemana1)&(sDF2016.clasificacion==bDF2016.clasificacion1))
+   mDF2017=sDF2017.join(bDF2017,(sDF2017.id_tienda==bDF2017.id_tienda1)&(sDF2017.CLUSTER==bDF2017.CLUSTER1)&(sDF2017.id_producto==bDF2017.id_producto1)&(sDF2017.idCategoria==bDF2017.idCategoria1)&(sDF2017.idSubcategoria==bDF2017.idSubcategoria1)&(sDF2017.diaSemana==bDF2017.diaSemana1)&(sDF2017.finSemana==bDF2017.finSemana1)&(sDF2017.clasificacion==bDF2017.clasificacion1))
+   print "unir piezas de semanas anteriores con agregados, ya"
+   print "ya casi...."
+   matrizDF2016=mDF2016.drop("idTienda1").drop("idProducto1").drop("diaSemana1").drop("clasificacion1").drop("CLUSTER1").drop("idCategoria1").drop("idSubcategoria1").drop("finSemana1").drop("id_producto1").drop("id_tienda1")
+   matrizDF2017=mDF2017.drop("idTienda1").drop("idProducto1").drop("diaSemana1").drop("clasificacion1").drop("CLUSTER1").drop("idCategoria1").drop("idSubcategoria1").drop("finSemana1").drop("id_producto1").drop("id_tienda1")
+   m1=matrizDF2016.drop(str(semana2016)+"_mediana").drop(str(semana2016)+"_maximo").drop(str(semana2016)+"_promedio").drop(str(semana2016)+"_minimo").drop(str(semana2016)+"_suma")
+   m2=matrizDF2017.drop(str(semana2017)+"_mediana").drop(str(semana2017)+"_maximo").drop(str(semana2017)+"_promedio").drop(str(semana2017)+"_minimo").drop(str(semana2017)+"_suma")
+   print "quitar columnas ya"
+   print "ahora solo escribir en csv"
+   m1.coalesce(1).write.option("header","true").csv(ruta + str(i) + "cacho_2016.csv")  
+   print "primer csv leido ya"             
+   m2.coalesce(1).write.option("header","true").csv(ruta + str(i) + "cacho_2017.csv")
+   print "segundo csv leido ya"
+   print "ya estuvo, siguiente!"
+   print "presiona Enter para terminar"
+
+#aplico la parte de Python, creo un archivo llamado "fin.csv" y vuelvo a #Pyspark para el formato final
+
+x=spark.read.option("header","true").option("inferSchema","true").csv(ruta+"fin.csv")
+fechaDF.createTempView("fechaDF")
+fin=spark.sql("select id_tienda,id_producto,idDia,piezas from x inner join (select * from fechaDF where idSemana=201709) y on x.diaSemana=y.diaSemana")
+fin.write.option("header","true").option("inferSchema","true").csv(ruta+"final.csv")
+
+

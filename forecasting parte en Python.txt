@@ -1,0 +1,75 @@
+import pandas as pd
+import xgboost
+import glob
+from sklearn.metrics import accuracy_score
+ 
+xgbc=xgboost.XGBClassifier(n_estimators=300,max_depth=5)
+
+training_files=[]
+path="cachos2016/"
+files=glob.glob(path + "/*.csv")
+for x in files:
+    df=pd.read_csv(x,header=0)
+    df.columns=['id_producto','id_tienda','idSubcategoria','idCategoria','CLUSTER','diaSemana','finSemana','clasificacion','s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11','s12','s13','s14','s15','s16','s17','s18','s19','s20','s21','s22','s23','s24','s25','s26','s27','s28','s29','s30','semanaBase']
+    training_files.append(df)
+
+testing_files=[]
+path="cachos2017/"
+files=glob.glob(path + "/*.csv")
+for x in files:
+    df=pd.read_csv(x,header=0)
+    df.columns=['id_producto','id_tienda','idSubcategoria','idCategoria','CLUSTER','diaSemana','finSemana','clasificacion','s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11','s12','s13','s14','s15','s16','s17','s18','s19','s20','s21','s22','s23','s24','s25','s26','s27','s28','s29','s30','semanaBase']
+    testing_files.append(df)
+
+prediction={}
+identificador={}
+actual_values={}
+for i in range(0,17):
+    df_train=training_files[i]
+    y_train=pd.Series(df_train['semanaBase'].copy())
+    print("copying target done!")
+    df_train=df_train.drop(labels=['id_tienda','id_producto','semanaBase'],axis=1)
+    print("dropping columns done!")
+    xgbc.fit(df_train,y_train)
+    print("training done!")
+    df_test=testing_files[i]
+    y_test=pd.Series(df_test['semanaBase'].copy())
+    actual_values["actual{0}".format(i)]=y_test
+    identidad=df_test[['id_tienda','id_producto','diaSemana']]
+    identificador["identificador{0}".format(i)]=identidad          
+    df_test=df_test.drop(labels=['id_tienda','id_producto','semanaBase'],axis=1)
+    print("same shit with testing done!")
+    prediccion=pd.DataFrame({'piezas':xgbc.predict(df_test)})
+    prediction["prediction{0}".format(i)]=prediccion
+    print("Done!")
+    
+
+
+lista1=[]
+for i in range(0,17):
+    df1=identificador.get("identificador{0}".format(i))
+    lista1.append(df1)
+    
+lista2=[]   
+for i in range(0,17): 
+    df=pd.DataFrame(prediction.get("prediction{0}".format(i)))
+    lista2.append(df)
+
+lista3=[]
+for i in range(0,17):
+    df2=actual_values.get("actual{0}".format(i))
+    lista3.append(df2)
+     
+lista3.to_csv('fin2.csv')
+
+lista4=[]
+for i in range(0,17):
+    df4=pd.DataFrame(lista1[i],lista2[i])
+    lista4.append(df4)
+    
+pedazo_prediccion=pd.concat(lista2)
+pedazo_identificador=pd.concat(lista1)
+
+pedazo_prediccion.to_csv('fin1.csv',index=False)
+pedazo_identificador.to_csv('fin2.csv',index=False)
+
