@@ -1,0 +1,37 @@
+Here I describe the strategy of the model using Spark, Python and gradient boosting
+in order the predict the number of items sold for each product and for each store.
+
+In this project the most difficult part was the feature engineering, and also the amount of data.
+In fact, I did the feature engineering in Spark because I was dealing with 2 or 3 million of observations and I thought it would be faster (which was a mistake because I was in a local machine anyway and not a cluster).
+
+I tried to apply xgboost in Spark as well, but for some strange reason the predictions where all equal to 0 after hours and hours of computing, so I decided to do the prediction part in Python in many small parts.
+
+Another difficulty was the variety of the stores. For example, there were small stores and very big stores. Furthermore, some stores had products in their inventory that other stores didn't. There were stores even specialized in selling liquor for example while
+others were specialized in selling meat say, and stores selling both meat and liquor. As I see it now, it was a mistake applying the same model to all the stores due to their wide variety and probably a clustering of them
+would have been more appropriate as a previous step, but I didn't have time to do this. 
+Also, about 80% of the products in the inventory of the store can sell literally 0 items during a week whereas 20% of the products comprises the total sells of the store.
+Therefore, it was aboslutely necessary to apply a cluster here as well because when I applied xgboost
+to all the products, the prediction was dominated by the zeroes. As a result, the accuracy obtained in some stores was above 80% whereas in some other stores
+it was below 20%. 
+
+
+First I fixed a week to be predicted.
+Using SQL statements, I extracted the number of items sold for each product and each store
+in the last 3 months right before the week to be predicted.
+
+
+
+date         day_of_week  id_store  id_product number_items_sold
+
+01/02/2017   thursday     127       2456       3 
+02/02/2017   friday       127       1345       2
+                          127       1256       0 
+
+
+
+
+
+
+Back then I didn't know about time series, so I tried a supervised learning model instead.
+Therefore I had to define predictor variables and target variable. 
+
