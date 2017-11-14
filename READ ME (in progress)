@@ -16,8 +16,13 @@ Therefore, it was aboslutely necessary to apply a cluster here as well because w
 to all the products, the prediction was dominated by the zeroes. As a result, the accuracy obtained in some stores was above 80% whereas in some other stores
 it was below 20%. 
 
+The objective
 
-First I fixed a week to be predicted.
+Predict the number of items that each store will sell for each product in their inventory during a fixed week.
+
+The strategy
+
+First I fixed a week of the year to be predicted.
 Using SQL statements, I extracted the number of items sold for each product and each store
 in the last 3 months right before the week to be predicted.
 
