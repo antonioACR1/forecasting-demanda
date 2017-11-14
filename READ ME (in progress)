@@ -3,6 +3,8 @@ Spark, Python and gradient boosting.
 
 This project was never deployed, so I described the progress achieved.
 
+Difficulties
+
 In this project the most difficult part is the feature engineering together with the amount of data.
 In fact, I did the feature engineering in Spark because I was dealing with 2 or 3 million of observations and I thought it would be faster (which was a mistake because I was in a local machine anyway and not in a cluster).
 
