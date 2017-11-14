@@ -1,11 +1,22 @@
 from pyspark.sql import SparkSession
 #The following functions are used in the feature engineering part
 from pyspark.sql.functions import mean, sum, max, col, avg, min, count,coalesce,lit,when
+
 ruta = "/home/antonio/Documentos/forecasting_mio/"
 #read data from 2016. This is the training dataset
 clasificacionTiendaDF2016=spark.read.option("header","true").option("inferSchema","true").csv(ruta+"clasificacion2016.csv")
-#read data from 2017. 
+#the dataset looks something like this:
+#id_store   id_product  date        number_of_items_sold
+#1          100         23-02-2016  2
+#2          100         22-02-2016  4
+
+#read data from 2017. This is the testing dataset. 
 clasificacionTiendaDF2017=spark.read.option("header","true").option("inferSchema","true").csv(ruta+"clasificacion2017.csv")
+#the dataset looks something like this:
+#id_store   id_product  date        number_of_items_sold
+#1          100         23-02-2017  2
+#2          100         22-02-2017  4
+
 clasificacion=when(col("clasificacion")=="*B",lit(1)).when(col("clasificacion")=="AAA",lit(0)).otherwise(lit(3))
 clasificacionTiendaDF2016=clasificacionTiendaDF2016.withColumn("clasificacion",clasificacion)
 clasificacionTiendaDF2017=clasificacionTiendaDF2017.withColumn("clasificacion",clasificacion)
