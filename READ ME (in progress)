@@ -1,10 +1,12 @@
-Here I describe the strategy of the model using Spark, Python and gradient boosting
-in order the predict the number of items sold for each product and for each store.
+Here I describe the strategy that I followed in order the predict the number of items sold for each product and for each store using 
+Spark, Python and gradient boosting.
 
-In this project the most difficult part was the feature engineering, and also the amount of data.
-In fact, I did the feature engineering in Spark because I was dealing with 2 or 3 million of observations and I thought it would be faster (which was a mistake because I was in a local machine anyway and not a cluster).
+This project was never deployed, so I described the progress achieved.
 
-I tried to apply xgboost in Spark as well, but for some strange reason the predictions where all equal to 0 after hours and hours of computing, so I decided to do the prediction part in Python in many small parts.
+In this project the most difficult part is the feature engineering together with the amount of data.
+In fact, I did the feature engineering in Spark because I was dealing with 2 or 3 million of observations and I thought it would be faster (which was a mistake because I was in a local machine anyway and not in a cluster).
+
+I tried to apply xgboost in Spark as well, but for some strange reason the predictions where all equal to 0 after hours and hours of computing, so I decided to do the prediction part in Python, partitioned in several small parts.
 
 Another difficulty was the variety of the stores. For example, there were small stores and very big stores. Furthermore, some stores had products in their inventory that other stores didn't. There were stores even specialized in selling liquor for example while
 others were specialized in selling meat say, and stores selling both meat and liquor. As I see it now, it was a mistake applying the same model to all the stores due to their wide variety and probably a clustering of them
