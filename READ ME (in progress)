@@ -24,17 +24,14 @@ Predict the number of items that each store will sell for each product in their 
 
 The strategy
 
-First I fixed a week of the year to be predicted.
-Using SQL statements, I extracted the number of items sold for each product and each store
-in the last 3 months right before the week to be predicted.
-
-
+First I fixed a week of the year to be predicted, say week 15 of 2017. Consider nine weeks prior to the week to be predicted.
+Extract the data from SQL in the following format
 
 date         day_of_week  id_store  id_product number_items_sold
 
 01/02/2017   thursday     127       2456       3 
 02/02/2017   friday       127       1345       2
-                          127       1256       0 
+                   
 
 
 
