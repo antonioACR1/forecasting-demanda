@@ -42,6 +42,31 @@ weeks 6 through 14 from 2017.
 
 Next, extract week 15 from 2016 and the corresponding previous nine weeks (weeks 6 through 14 from 2016).
 
+Now, for each store x, each product y, and each week z we should construct the following:
+
+Maximum number of  items sold.
+Minimum number of items sold.
+Median of items sold.
+Mean of items sold.
+Frequency of items sold for each distinct number of items sold during the week.
+
+For example, suppose that the store 2341 has sold the product 342 during week 15 from 2017 as follows:
+week date        id_store id_product number_items_sold
+15   26/03/2017  2341     342        0
+15   27/03/2017                      2
+15   28/03/2017                      5 
+15   29/03/2017                      1
+15   30/03/2017                      0
+15   31/03/2017                      1
+15   01/04/2017                      2
+
+The maximum number of items sold during this week is 5, the minimum is 0, the median is 1, the average is 1.57, the frequency of
+0 is 2, the frequency of 1 is 2, the frequency of 2 is 2, and the frequency of 5 is 1.
+
+So with Pyspark we aim to construct the following dataset:
+
+
+
 
                    
 
