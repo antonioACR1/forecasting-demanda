@@ -5,29 +5,33 @@ This project was never deployed, so I described the progress achieved.
 
 Difficulties
 
-In this project the most difficult part is the feature engineering and the amount of data.
-In fact, I did the feature engineering in Spark because I was dealing with 2 or 3 million of observations and I thought it would be faster (which was a mistake because I was in a local machine anyway and not in a cluster).
+In this project the most difficult part is the feature engineering given the amount of data.
 
-I tried to apply xgboost in Spark as well, but for some strange reason the predictions where all equal to 0 after hours and hours of computing, so I decided to do the prediction part in Python, partitioned in several small parts.
+There were around 3000 stores with daily transactions, around 40000 products overall (I think?) and data corresponding to 3-4 years.
 
+Some other difficulties were: variety of stores. This means that the same model should be used to predict on both 
+big stores and small stores. Also, the model should predict on some products which might be available in some stores but not in others.
+Finally, around 20% of the products have daily transactions but the remaining 80% could spend literally weeks without selling anything.
+As I noticed during the construction of this model, the latter will dominate the entire model and this is not something desireable.
 
-Another difficulty was the variety of the stores. For example, there were small stores and very big stores. Furthermore, some stores had products in their inventory that other stores didn't. There were stores even specialized in selling liquor for example while
-others were specialized in selling meat say, and stores selling both meat and liquor. As I see it now, it was a mistake applying the same model to all the stores due to their wide variety and probably a clustering of them
-would have been more appropriate as a previous step, but I didn't have time to do this. 
-Also, about 80% of the products in the inventory of the store can sell literally 0 items during a week whereas 20% of the products comprises the total sells of the store.
-Therefore, it was aboslutely necessary to apply a cluster here as well because when I applied xgboost
-to all the products, the prediction was dominated by the zeroes. As a result, the accuracy obtained in some stores was above 80% whereas in some other stores
-it was below 20%. 
+Tools used
 
-Finally, I didn't know time series when I was working on this project.
+SQL where the data was stored, Pyspark for feature engineering, Python for predictions and xgboost as the mathematical algorithm working behind.
 
-The objective
+Some thoughts on possible changes for the future
 
-Predict the number of items that each store will sell for each product in their inventory during a fixed week.
+A deeper classification of the stores (deeper than the existing one) and also a deeper classification of the products.
+A predictive model for each group should be constructed, not a single model for alll the data. Finally, include time series.
+
+The strategy in detail
+
+Objective: Predict the number of items that each store will sell for each product in their inventory during a fixed week of the year.
+
+As I don't have the data available at this moment, I'm describing the general steps with dummy data.
 
 The strategy
 
-First I fixed a week of the year to be predicted, say week 15 of 2017. Consider nine weeks prior to the week to be predicted.
+First I fixed a week of the year to be predicted, say week 15 in 2017. Consider nine weeks prior to the week to be predicted.
 Extract the data from SQL in the following format
 
 date         day_of_week  id_store  id_product number_items_sold
