@@ -29,22 +29,23 @@ Objective: Predict the number of items that each store will sell for each produc
 
 As I don't have the data available at this moment, I'm describing the general steps with dummy data.
 
-The strategy
-
-First I fixed a week of the year to be predicted, say week 15 in 2017. Consider nine weeks prior to the week to be predicted.
-Extract the data from SQL in the following format
+Using SQL queries, extract initial data in the following format:
 
 date         day_of_week  id_store  id_product number_items_sold
 
 01/02/2017   thursday     127       2456       3 
-02/02/2017   friday       127       1345       2
+02/02/2017   friday       127       2456       2
+03/02/2017   saturday     127       2456       4
+
+Fixed a week of the year to be predicted, say week 15 in 2017.  Consider nine weeks prior to the week to be predicted, e.g. 
+weeks 6 through 14.
+
+
+
                    
 
 
 
 
 
-
-Back then I didn't know about time series, so I tried a supervised learning model instead.
-Therefore I had to define predictor variables and target variable. 
 
