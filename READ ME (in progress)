@@ -37,9 +37,10 @@ date         day_of_week  id_store  id_product number_items_sold
 02/02/2017   friday       127       2456       2
 03/02/2017   saturday     127       2456       4
 
-Fixed a week of the year to be predicted, say week 15 in 2017.  Consider nine weeks prior to the week to be predicted, e.g. 
-weeks 6 through 14.
+Fixed a week of the year to be predicted, say week 15 from 2017.  Consider nine weeks prior to the week to be predicted, e.g. 
+weeks 6 through 14 from 2017.
 
+Next, extract week 15 from 2016 and the corresponding previous nine weeks (weeks 6 through 14 from 2016).
 
 
                    
